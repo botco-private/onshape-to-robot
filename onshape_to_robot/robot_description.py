@@ -268,9 +268,8 @@ class RobotURDF(RobotDescription):
         if self.packageName != "":
             stl_file = "package://" + self.packageName.strip("/") + "/" + stl
         else:
-            stl_file = stl
+            stl_file = self.meshDir.split('/')[-1] + '/' + stl
         stl_file = xml_escape(stl_file)
-
         material_name = name + "_material"
         material_name = xml_escape(material_name)
 
