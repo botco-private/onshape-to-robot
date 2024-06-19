@@ -71,6 +71,7 @@ class RobotDescription(object):
         self.addDummyBaseLink = False
         self.robotName = name
         self.meshDir = None
+        self.mergedSTLs_list = []
 
     def shouldMergeSTLs(self, node):
         return self.mergeSTLs == 'all' or self.mergeSTLs == node
@@ -135,6 +136,7 @@ class RobotDescription(object):
             self._mesh[node] = m
         else:
             self._mesh[node] = stl_combine.combine_meshes(self._mesh[node], m)
+            self.mergedSTLs_list.append(stl)
 
     def linkDynamics(self):
         mass = 0
@@ -354,6 +356,12 @@ class RobotURDF(RobotDescription):
         self.append(self.additionalXML)
         self.append('</robot>')
 
+        print("Removing following STLs since they are merged:")
+        for stl in list(set(self.mergedSTLs_list)):
+            os.remove(stl)
+            print(stl)
+            # Also remove the *.part file
+            os.remove(stl.replace(".stl", ".part"))
 
 class RobotSDF(RobotDescription):
     def __init__(self, name):

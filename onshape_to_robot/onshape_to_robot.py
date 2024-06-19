@@ -39,8 +39,9 @@ def main():
     robot.robotName = config['robotName']
     robot.additionalXML = config['additionalXML']
     robot.useFixedLinks = config['useFixedLinks']
-    robot.meshDir = config['outputDirectory']
-
+    robot.meshDir = config['outputDirectory'] + '/meshes'
+    if not os.path.exists(robot.meshDir):
+        os.makedirs(robot.meshDir)
 
     def partIsIgnore(name):
         if config['whitelist'] is None:
@@ -88,22 +89,22 @@ def main():
                 shortend_configuration = part['configuration']
             stl = client.part_studio_stl_m(part['documentId'], part['documentMicroversion'], part['elementId'],
                                         part['partId'], shortend_configuration)
-            with open(config['outputDirectory']+'/'+stlFile, 'wb') as stream:
+            with open(robot.meshDir+'/'+stlFile, 'wb') as stream:
                 stream.write(stl)
 
             stlMetadata = prefix.replace('/', '_')+'.part'
-            with open(config['outputDirectory']+'/'+stlMetadata, 'w', encoding="utf-8") as stream:
+            with open(robot.meshDir+'/'+stlMetadata, 'w', encoding="utf-8") as stream:
                 json.dump(part, stream, indent=4, sort_keys=True)
 
-            stlFile = config['outputDirectory']+'/'+stlFile
+            stlFile = robot.meshDir+'/'+stlFile
 
         # Import the SCAD files pure shapes
         shapes = None
         if config['useScads']:
             scadFile = prefix+'.scad'
-            if os.path.exists(config['outputDirectory']+'/'+scadFile):
+            if os.path.exists(robot.meshDir+'/'+scadFile):
                 shapes = csg.process(
-                    config['outputDirectory']+'/'+scadFile, config['pureShapeDilatation'])
+                    robot.meshDir+'/'+scadFile, config['pureShapeDilatation'])
 
         # Obtain metadatas about part to retrieve color
         if config['color'] is not None:
