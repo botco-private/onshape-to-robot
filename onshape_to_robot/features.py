@@ -33,7 +33,7 @@ def readExpression(expression):
     if expression[0:2] == '-#':
         expression = '-'+configuration_parameters[expression[2:]]
 
-    parts = expression.split(' ')
+    parts = expression.replace('(', '').replace(')', '').split(' ')
 
     # Checking the unit, returning only radians and meters
     if parts[1] == 'deg':

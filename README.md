@@ -10,3 +10,12 @@ simulation.
 
 * [Documentation](https://onshape-to-robot.readthedocs.io/)
 * [Examples](https://github.com/rhoban/onshape-to-robot-examples)
+
+To run from BotCo fork - 
+```
+python -m onshape_to_robot.onshape_to_robot.py <path containing config.json>
+```
+Example:
+```
+python -m onshape_to_robot.onshape_to_robot.py /home/paril/Documents/src/autonomy/firmware/config/urdfs/beta-bot
+```

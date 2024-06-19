@@ -163,6 +163,7 @@ class RobotURDF(RobotDescription):
     def __init__(self, name):
         super().__init__(name)
         self.ext = 'urdf'
+        self.append('<?xml version="1.0" encoding="UTF-8"?>')
         self.append('<robot name="' + self.robotName + '">')
         pass
 
@@ -262,7 +263,10 @@ class RobotURDF(RobotDescription):
         self.addFixedJoint(self._link_name, name, matrix, name+'_frame')
 
     def addSTL(self, matrix, stl, color, name, node='visual'):
-        stl_file = self.packageName.strip("/") + "/" + stl
+        if self.packageName != "":
+            stl_file = "package://" + self.packageName.strip("/") + "/" + stl
+        else:
+            stl_file = stl
         stl_file = xml_escape(stl_file)
 
         material_name = name + "_material"
@@ -271,7 +275,7 @@ class RobotURDF(RobotDescription):
         self.append('<'+node+'>')
         self.append(origin(matrix))
         self.append('<geometry>')
-        self.append(f'<mesh filename="package://{stl_file}"/>')
+        self.append(f'<mesh filename="{stl_file}"/>')
         self.append('</geometry>')
         if node == 'visual':
             self.append(f'<material name="{material_name}">')
