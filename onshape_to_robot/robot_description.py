@@ -3,6 +3,7 @@ import os
 import math
 import uuid
 from xml.sax.saxutils import escape
+import xml.etree.ElementTree as ET
 from . import stl_combine
 
 
@@ -355,12 +356,28 @@ class RobotURDF(RobotDescription):
         self.append(self.additionalXML)
         self.append('</robot>')
 
-        print("Removing following STLs since they are merged:")
-        for stl in list(set(self.mergedSTLs_list)):
-            os.remove(stl)
-            print(stl)
-            # Also remove the *.part file
-            os.remove(stl.replace(".stl", ".part"))
+        print("Removing All files inside meshDir that aren't referenced in xml:")
+        root = ET.fromstring(self.xml)
+        # Extract all STL file names from the XML
+        referenced_files = set()
+        for mesh in root.findall('.//mesh'):
+            file_path = mesh.get('filename')
+            if file_path and file_path.startswith("meshes/") and file_path.endswith(".stl"):
+                referenced_files.add(os.path.basename(file_path))
+        
+        # Iterate through the files in the meshes directory
+        for file_name in os.listdir(self.meshDir):
+            file_path = os.path.join(self.meshDir, file_name)
+            if not file_name.endswith(".stl") or file_name not in referenced_files:
+                # If the file does not end with .stl or is not referenced in the XML, delete it
+                os.remove(file_path)
+                print(f"Deleted: {file_path}")
+
+        # for stl in list(set(self.mergedSTLs_list)):
+        #     os.remove(stl)
+        #     print(stl)
+        #     # Also remove the *.part file
+        #     os.remove(stl.replace(".stl", ".part"))
 
 class RobotSDF(RobotDescription):
     def __init__(self, name):
