@@ -6,7 +6,12 @@ import stl
 import os
 from stl import mesh
 from colorama import Fore, Back, Style
+import open3d as o3d
+import logging
+from pathlib import Path
 
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 def load_mesh(stl_file):
     return mesh.Mesh.from_file(stl_file)
@@ -71,7 +76,7 @@ def create_tmp_filter_file(filename='filter_file_tmp.mlx', reduction=0.9):
     return '/tmp/' + filename
 
 
-def reduce_faces(in_file, out_file, reduction=0.5):
+def reduce_faces_using_meshlab(in_file, out_file, reduction=0.5):
     filter_script_path = create_tmp_filter_file(reduction=reduction)
     # Add input mesh
     command = "meshlabserver -i " + in_file
@@ -87,12 +92,48 @@ def reduce_faces(in_file, out_file, reduction=0.5):
     # print("Done:")
     #print(in_file + " > " + out_file + ": " + last_line)
 
+def simplify_mesh_using_o3d(filepath: str, voxel_size: float) -> str:
+    """Simplifies a mesh by clustering vertices."""
+    mesh = o3d.io.read_triangle_mesh(filepath)
+    simple_mesh = mesh.simplify_vertex_clustering(
+        voxel_size=voxel_size,
+        contraction=o3d.geometry.SimplificationContraction.Average,
+    )
+    logger.info("Simplified mesh from %d to %d vertices", len(mesh.vertices), len(simple_mesh.vertices))
+    # Remove old mesh and save the simplified one
+    ext = Path(filepath).suffix
+    if ext.lower() == ".stl":
+        simple_mesh.compute_vertex_normals()
+    filepath = Path(filepath)
+    new_filepath = filepath.parent / f"{filepath.stem}_simple{filepath.suffix}"
+    new_filepath = str(new_filepath)
+
+    file_to_write = filepath
+   # Save the simplified mesh to the new file path
+    o3d.io.write_triangle_mesh(str(filepath), simple_mesh)
+    
+    return file_to_write
+
+def count_triangles_in_stl(file_path):
+    with open(file_path, 'rb') as file:
+        file.seek(80)  # Skip the header
+        triangles_bytes = file.read(4)  # Read the next 4 bytes
+        num_triangles = int.from_bytes(triangles_bytes, byteorder='little')
+        return num_triangles
 
 def simplify_stl(stl_file, max_size=3):
+    original_triangles = count_triangles_in_stl(stl_file)
+    # new_file = simplify_mesh_using_o3d(stl_file, 0.03)
+    open3d_simplified_triangles = count_triangles_in_stl(stl_file)
+
     size_M = os.path.getsize(stl_file)/(1024*1024)
 
     if size_M > max_size:
         print(Fore.BLUE + '+ '+os.path.basename(stl_file) +
               (' is %.2f M, running mesh simplification' % size_M))
         shutil.copyfile(stl_file, '/tmp/simplify.stl')
-        reduce_faces('/tmp/simplify.stl', stl_file, max_size / size_M)
+        reduce_faces_using_meshlab('/tmp/simplify.stl', stl_file, max_size / size_M)
+    final_triangles = count_triangles_in_stl(stl_file)
+
+    print(Fore.BLUE + '+ '+os.path.basename(stl_file) +
+            (' simplified from %d to %d to %d triangles' % (original_triangles, open3d_simplified_triangles, final_triangles)))
